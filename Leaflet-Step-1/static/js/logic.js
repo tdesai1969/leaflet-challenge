@@ -1,8 +1,22 @@
 // Create the tile layer that will be the background of our map
-var lightmap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/light-v9/tiles/256/{z}/{x}/{y}?access_token={accessToken}", {
+var lightmap = L.tileLayer("https://api.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
     attribution: "Map data &copy; <a href=\"http://openstreetmap.org\">OpenStreetMap</a> contributors, <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"http://mapbox.com\">Mapbox</a>",
     maxZoom: 18,
     id: "mapbox.light",
+    accessToken: API_KEY
+});
+
+var satellitemap = L.tileLayer("https://api.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+    attribution: "Map data &copy; <a href=\"http://openstreetmap.org\">OpenStreetMap</a> contributors, <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"http://mapbox.com\">Mapbox</a>",
+    maxZoom: 18,
+    id: "mapbox.streets-satellite",
+    accessToken: API_KEY
+});
+
+var outdoorsmap = L.tileLayer("https://api.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+    attribution: "Map data &copy; <a href=\"http://openstreetmap.org\">OpenStreetMap</a> contributors, <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"http://mapbox.com\">Mapbox</a>",
+    maxZoom: 18,
+    id: "mapbox.outdoors",
     accessToken: API_KEY
 });
 
@@ -10,10 +24,25 @@ var lightmap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/light-v9/til
 var map = L.map("map", {
     center: [40.73, -94.5],
     zoom: 3,
+    layers: [lightmap,satellitemap,outdoorsmap]
 });
 
 // Add our 'lightmap' tile layer to the map
 lightmap.addTo(map);
+
+var tectonicplates = new L.layerGroup();
+var earthquakes = new L.layerGroup();
+
+var overlays = {
+    "Tectonic Plates ": tectonicplates,
+    "Earthquakes" : earthquakes
+}
+var basemaps = {
+    Grayscale: lightmap,
+    Satellite: satellitemap,
+    Outdoors: outdoorsmap
+}
+L.control.layers(basemaps,overlays).addTo(map)
 
 d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson", function (data) {
     function styleInfo(feature) {
@@ -51,7 +80,9 @@ d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geoj
             layer.bindPopup("Magnitude: " + feature.properties.mag + "<br> Location:  " + feature.properties.place);
         }
 
-    }).addTo(map)
+    }).addTo(earthquakes)
+    earthquakes.addTo(map)
+
     var legend = L.control({
         position: "bottomright"
     })
@@ -66,4 +97,12 @@ d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geoj
         return div;
     }
     legend.addTo(map);
+
+    d3.json("https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json", function(data) {
+        L.geoJson(data, {
+            color:"orange",
+            weight: 2
+        }).addTo(tectonicplates)
+        tectonicplates.addTo(map)
+    })
 });
